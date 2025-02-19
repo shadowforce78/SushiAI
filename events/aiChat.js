@@ -14,6 +14,7 @@ client.on('messageCreate', async (message) => {
     try {
         const configuredChannel = await db.getChatChannel(message.guildId);
         if (message.channelId !== configuredChannel) return;
+        if (message.content.startsWith('\\')) return; // Ignore les commandes si on met un backslash
 
         if (!checkAndIncrementCounter()) {
             return message.reply("Quota dépassé pour aujourd'hui my G (SAD!) 😔");
