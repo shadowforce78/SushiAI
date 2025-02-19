@@ -27,54 +27,51 @@ client.on('messageCreate', async (message) => {
 
         // Récupérer l'historique global du salon
         const history = await db.getRecentHistory(message.guildId);
-        const systemContext = getSystemContext();
+        const systemContext = await getSystemContext(message.author.id);
 
         const genAI = new GoogleGenerativeAI(geminiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-        // Construire le prompt avec l'historique
-        const contents = [
-            { role: 'user', parts: [{ text: systemContext }] },
-            { role: 'model', parts: [{ text: "Compris, je suis TH et je vais répondre selon ces directives." }] }
-        ];
-
-        // Ajouter l'historique récent avec les noms d'utilisateurs
-        history.reverse().forEach(entry => {
-            const userName = message.guild.members.cache.get(entry.user_id)?.displayName || "Utilisateur";
-            contents.push({ 
-                role: 'user', 
-                parts: [{ text: `[${userName}]: ${entry.message}` }] 
-            });
-            contents.push({ 
-                role: 'model', 
-                parts: [{ text: entry.response }] 
-            });
-        });
-
-        // Ajouter le message actuel avec le nom de l'utilisateur
-        contents.push({ 
-            role: 'user', 
-            parts: [{ text: `[${message.member.displayName}]: ${message.content}` }] 
-        });
-
-        const result = await model.generateContentStream({ contents });
-        const buffer = new TextBuffer();
-        let fullResponse = '';
-
-        for await (const chunk of result.stream) {
-            const chunkText = chunk.text();
-            fullResponse += chunkText;
-            buffer.append(chunkText);
-
-            if (buffer.shouldFlush()) {
-                await message.channel.send({
-                    content: buffer.flush(),
-                    allowedMentions: { parse: [] }
-                });
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-2.0-flash",
+            generationConfig: {
+                maxOutputTokens: 2048,
+                temperature: 0.9
             }
-        }
+        });
 
-        if (buffer.buffer.length > 0) {
+        const result = await model.generateContent({
+            contents: [
+                {
+                    role: 'user',
+                    parts: [{ text: systemContext }]
+                },
+                {
+                    role: 'model',
+                    parts: [{ text: "Compris, je suis TH et je vais répondre selon ces directives." }]
+                },
+                ...history.reverse().flatMap(entry => [
+                    {
+                        role: 'user',
+                        parts: [{ text: entry.message }]
+                    },
+                    {
+                        role: 'model',
+                        parts: [{ text: entry.response }]
+                    }
+                ]),
+                {
+                    role: 'user',
+                    parts: [{ text: message.content }]
+                }
+            ]
+        });
+
+        const response = result.response.text();
+        
+        // Découper la réponse en morceaux si nécessaire
+        const buffer = new TextBuffer();
+        buffer.append(response);
+
+        while (buffer.buffer.length > 0) {
             await message.channel.send({
                 content: buffer.flush(),
                 allowedMentions: { parse: [] }
@@ -82,10 +79,7 @@ client.on('messageCreate', async (message) => {
         }
 
         // Sauvegarder dans l'historique
-        await db.saveChat(message.guildId, message.author.id, 
-            `[${message.member.displayName}]: ${message.content}`, 
-            fullResponse
-        );
+        await db.saveChat(message.guildId, message.author.id, message.content, response);
 
     } catch (error) {
         console.error('Erreur lors du traitement du message:', error);

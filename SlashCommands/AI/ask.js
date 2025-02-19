@@ -32,45 +32,52 @@ module.exports = {
         }
 
         const question = interaction.options.getString("question");
-        const systemContext = getSystemContext();
+        const systemContext = await getSystemContext(interaction.user.id);
 
         const genAI = new GoogleGenerativeAI(geminiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-        const prompt = {
-            contents: [
-                { role: 'user', parts: [{ text: systemContext }] },
-                { role: 'model', parts: [{ text: "Compris, je suis SushiAI et je vais répondre selon ces directives." }] },
-                { role: 'user', parts: [{ text: question }] }
-            ]
-        };
-
-        const result = await model.generateContentStream(prompt);
-        const buffer = new TextBuffer();
-
-        await interaction.followUp({ content: "🤖 Génération de la réponse..." });
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-2.0-flash",
+            generationConfig: {
+                maxOutputTokens: 2048,
+                temperature: 0.9
+            }
+        });
 
         try {
-            for await (const chunk of result.stream) {
-                buffer.append(chunk.text());
-                
-                if (buffer.shouldFlush()) {
-                    await interaction.channel.send({
-                        content: buffer.flush(),
-                        allowedMentions: { parse: [] }
-                    });
-                }
-            }
+            await interaction.followUp({ content: "🤖 Génération de la réponse..." });
 
-            // Envoyer le reste du buffer s'il en reste
-            if (buffer.buffer.length > 0) {
+            const result = await model.generateContent({
+                contents: [
+                    {
+                        role: 'user',
+                        parts: [{ text: systemContext }]
+                    },
+                    {
+                        role: 'model',
+                        parts: [{ text: "Compris, je suis TH et je vais répondre selon ces directives." }]
+                    },
+                    {
+                        role: 'user',
+                        parts: [{ text: question }]
+                    }
+                ]
+            });
+
+            const response = result.response.text();
+            
+            // Découper la réponse en morceaux si nécessaire
+            const buffer = new TextBuffer();
+            buffer.append(response);
+
+            while (buffer.buffer.length > 0) {
                 await interaction.channel.send({
                     content: buffer.flush(),
                     allowedMentions: { parse: [] }
                 });
             }
+
         } catch (error) {
-            console.error('Erreur lors du streaming:', error);
+            console.error('Erreur lors de la génération:', error);
             await interaction.channel.send({
                 content: "Une erreur est survenue lors de la génération de la réponse."
             });

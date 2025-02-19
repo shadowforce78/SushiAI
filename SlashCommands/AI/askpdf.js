@@ -37,6 +37,7 @@ module.exports = {
 
         const question = interaction.options.getString("question");
         const pdfFile = interaction.options.getAttachment("pdf");
+        const systemContext = await getSystemContext(interaction.user.id);
 
         if (!pdfFile.contentType?.includes('pdf')) {
             return interaction.followUp({
@@ -47,39 +48,42 @@ module.exports = {
         await interaction.followUp({ content: "Analyse du PDF en cours..." });
 
         try {
-            // Télécharger et lire le PDF
             const pdfBuffer = await downloadFile(pdfFile.url);
             const pdfData = await pdfParse(pdfBuffer);
 
-            // Préparer le prompt avec le contexte du PDF
-            const systemContext = getSystemContext();
-            const prompt = {
-                contents: [
-                    { role: 'user', parts: [{ text: systemContext }] },
-                    { role: 'model', parts: [{ text: "Compris, je suis SushiAI et je vais répondre selon ces directives." }] },
-                    { role: 'user', parts: [{ text: `Contexte du PDF:\n${pdfData.text}\n\nQuestion: ${question}` }] }
-                ]
-            };
-
             const genAI = new GoogleGenerativeAI(geminiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-            const result = await model.generateContentStream(prompt);
-            const buffer = new TextBuffer();
-
-            for await (const chunk of result.stream) {
-                buffer.append(chunk.text());
-                
-                if (buffer.shouldFlush()) {
-                    await interaction.channel.send({
-                        content: buffer.flush(),
-                        allowedMentions: { parse: [] }
-                    });
+            const model = genAI.getGenerativeModel({ 
+                model: "gemini-2.0-flash",
+                generationConfig: {
+                    maxOutputTokens: 2048,
+                    temperature: 0.9
                 }
-            }
+            });
 
-            // Envoyer le reste du buffer s'il en reste
-            if (buffer.buffer.length > 0) {
+            const result = await model.generateContent({
+                contents: [
+                    {
+                        role: 'user',
+                        parts: [{ text: systemContext }]
+                    },
+                    {
+                        role: 'model',
+                        parts: [{ text: "Compris, je suis TH et je vais répondre selon ces directives." }]
+                    },
+                    {
+                        role: 'user',
+                        parts: [{ text: `Voici le contenu du PDF à analyser:\n\n${pdfData.text}\n\nQuestion: ${question}` }]
+                    }
+                ]
+            });
+
+            const response = result.response.text();
+            
+            // Découper la réponse en morceaux si nécessaire
+            const buffer = new TextBuffer();
+            buffer.append(response);
+
+            while (buffer.buffer.length > 0) {
                 await interaction.channel.send({
                     content: buffer.flush(),
                     allowedMentions: { parse: [] }
@@ -89,7 +93,7 @@ module.exports = {
         } catch (error) {
             console.error('Erreur lors du traitement du PDF:', error);
             await interaction.channel.send({
-                content: "Une erreur est survenue lors du traitement du PDF."
+                content: "Une erreur est survenue lors du traitement du PDF my G (ERROR!) 😔"
             });
         }
     },

@@ -12,3 +12,8 @@ CREATE TABLE IF NOT EXISTS chat_history (
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (guild_id) REFERENCES chat_channels(guild_id)
 );
+
+CREATE TABLE IF NOT EXISTS user_contexts (
+    user_id TEXT PRIMARY KEY,
+    context_type TEXT NOT NULL DEFAULT 'default'
+);

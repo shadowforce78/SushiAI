@@ -79,6 +79,26 @@ class Database {
             });
         });
     }
+
+    setUserContext(userId, contextType) {
+        return new Promise((resolve, reject) => {
+            const sql = 'INSERT OR REPLACE INTO user_contexts (user_id, context_type) VALUES (?, ?)';
+            this.db.run(sql, [userId, contextType], (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+    }
+
+    getUserContext(userId) {
+        return new Promise((resolve, reject) => {
+            const sql = 'SELECT context_type FROM user_contexts WHERE user_id = ?';
+            this.db.get(sql, [userId], (err, row) => {
+                if (err) reject(err);
+                else resolve(row?.context_type || 'default');
+            });
+        });
+    }
 }
 
 module.exports = new Database();
