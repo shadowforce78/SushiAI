@@ -1,10 +1,11 @@
-const { Client, CommandInteraction, PermissionFlagsBits } = require("discord.js");
+const { Client, CommandInteraction } = require("discord.js");
 const db = require("../../utils/database");
 
 module.exports = {
     name: "setchat",
     description: "Configure le canal pour le chat avec l'IA",
     type: 'CHAT_INPUT',
+    defaultMemberPermissions: 0x0000000000000010n, // ManageChannels flag
     options: [
         {
             name: "channel",
@@ -15,8 +16,8 @@ module.exports = {
     ],
 
     run: async (client, interaction, args) => {
-        // Vérifier les permissions avec PermissionFlagsBits au lieu de PermissionsBitField
-        if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
+        // Vérification des permissions avec la valeur hexadécimale
+        if (!interaction.memberPermissions.has(0x0000000000000010n)) {
             return interaction.followUp({
                 content: "Tu n'as pas la permission de configurer le chat my G (DENIED!) 🧢❌"
             });
