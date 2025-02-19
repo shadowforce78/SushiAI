@@ -19,7 +19,7 @@ module.exports = {
         // Vérification des permissions avec la valeur hexadécimale
         if (!interaction.memberPermissions.has(0x0000000000000010n)) {
             return interaction.followUp({
-                content: "Tu n'as pas la permission de configurer le chat my G (DENIED!) 🧢❌"
+                content: "Tu n'as pas la permission de configurer le chat ❌"
             });
         }
 
@@ -28,12 +28,12 @@ module.exports = {
         try {
             await db.setChatChannel(interaction.guildId, channel.id);
             await interaction.followUp({
-                content: `Yo my G (SKRRT!), le chat est maintenant configuré dans ${channel} no cap! 🧢❌ (GANG!)`
+                content: `Le chat est maintenant configuré dans ${channel} ❌`
             });
         } catch (error) {
             console.error('Erreur lors de la configuration du chat:', error);
             await interaction.followUp({
-                content: "Une erreur est survenue lors de la configuration (SAD!) 😔"
+                content: "Une erreur est survenue lors de la configuration 😔"
             });
         }
     },

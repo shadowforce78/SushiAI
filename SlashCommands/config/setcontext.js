@@ -15,7 +15,7 @@ module.exports = {
         }));
 
         const response = await interaction.followUp({
-            content: 'Choisis ma personnalité my G (CHOOSE!) 🎭',
+            content: 'Choisis ma personnalité 🎭',
             components: [{
                 type: 1, // ActionRow
                 components: [{
@@ -36,7 +36,7 @@ module.exports = {
             if (collected) {
                 await db.setUserContext(collected.user.id, collected.values[0]);
                 await collected.update({
-                    content: `Nouvelle personnalité activée: ${contexts[collected.values[0]].name} (CHANGED!) 🔄`,
+                    content: `Nouvelle personnalité activée: ${contexts[collected.values[0]].name} 🔄`,
                     components: []
                 });
             }

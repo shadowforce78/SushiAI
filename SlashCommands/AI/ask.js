@@ -54,7 +54,7 @@ module.exports = {
                     },
                     {
                         role: 'model',
-                        parts: [{ text: "Compris, je suis TH et je vais répondre selon ces directives." }]
+                        parts: [{ text: "Compris, je vais répondre selon ces directives." }]
                     },
                     {
                         role: 'user',

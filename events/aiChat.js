@@ -17,7 +17,7 @@ client.on('messageCreate', async (message) => {
         if (message.content.startsWith('\\')) return; // Ignore les commandes si on met un backslash
 
         if (!checkAndIncrementCounter()) {
-            return message.reply("Quota dépassé pour aujourd'hui my G (SAD!) 😔");
+            return message.reply("Quota dépassé pour aujourd'hui 😔");
         }
 
         await message.channel.sendTyping();
@@ -46,7 +46,7 @@ client.on('messageCreate', async (message) => {
                 },
                 {
                     role: 'model',
-                    parts: [{ text: "Compris, je suis TH et je vais répondre selon ces directives." }]
+                    parts: [{ text: "Compris, je vais répondre selon ces directives." }]
                 },
                 ...history.reverse().flatMap(entry => [
                     {
@@ -83,7 +83,7 @@ client.on('messageCreate', async (message) => {
 
     } catch (error) {
         console.error('Erreur lors du traitement du message:', error);
-        await message.reply("Une erreur est survenue my G (ERROR!) 😔");
+        await message.reply("Une erreur est survenue 😔");
     }
 
 })

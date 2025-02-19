@@ -68,7 +68,7 @@ module.exports = {
                     },
                     {
                         role: 'model',
-                        parts: [{ text: "Compris, je suis TH et je vais répondre selon ces directives." }]
+                        parts: [{ text: "Compris, je vais répondre selon ces directives." }]
                     },
                     {
                         role: 'user',
@@ -93,7 +93,7 @@ module.exports = {
         } catch (error) {
             console.error('Erreur lors du traitement du PDF:', error);
             await interaction.channel.send({
-                content: "Une erreur est survenue lors du traitement du PDF my G (ERROR!) 😔"
+                content: "Une erreur est survenue lors du traitement du PDF 😔"
             });
         }
     },
