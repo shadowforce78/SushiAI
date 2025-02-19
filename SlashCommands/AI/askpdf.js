@@ -7,6 +7,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const TextBuffer = require("../../utils/textBuffer");
+const { getSystemContext } = require("../../utils/botContext");
 
 module.exports = {
     name: "askpdf",
@@ -51,7 +52,14 @@ module.exports = {
             const pdfData = await pdfParse(pdfBuffer);
 
             // Préparer le prompt avec le contexte du PDF
-            const prompt = `Contexte du PDF:\n${pdfData.text}\n\nQuestion: ${question}`;
+            const systemContext = getSystemContext();
+            const prompt = {
+                contents: [
+                    { role: 'user', parts: [{ text: systemContext }] },
+                    { role: 'model', parts: [{ text: "Compris, je suis SushiAI et je vais répondre selon ces directives." }] },
+                    { role: 'user', parts: [{ text: `Contexte du PDF:\n${pdfData.text}\n\nQuestion: ${question}` }] }
+                ]
+            };
 
             const genAI = new GoogleGenerativeAI(geminiKey);
             const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });

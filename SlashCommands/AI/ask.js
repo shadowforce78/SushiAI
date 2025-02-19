@@ -3,6 +3,7 @@ const { Client, CommandInteraction } = require("discord.js");
 const geminiKey = require("../../config.json").gemini;
 const { checkAndIncrementCounter } = require("../../utils/requestCounter");
 const TextBuffer = require("../../utils/textBuffer");
+const { getSystemContext } = require("../../utils/botContext");
 
 module.exports = {
     name: "ask",
@@ -31,11 +32,18 @@ module.exports = {
         }
 
         const question = interaction.options.getString("question");
+        const systemContext = getSystemContext();
 
         const genAI = new GoogleGenerativeAI(geminiKey);
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-        const prompt = question
+        const prompt = {
+            contents: [
+                { role: 'user', parts: [{ text: systemContext }] },
+                { role: 'model', parts: [{ text: "Compris, je suis SushiAI et je vais répondre selon ces directives." }] },
+                { role: 'user', parts: [{ text: question }] }
+            ]
+        };
 
         const result = await model.generateContentStream(prompt);
         const buffer = new TextBuffer();
