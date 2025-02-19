@@ -28,7 +28,7 @@ module.exports = {
         try {
             await db.setChatChannel(interaction.guildId, channel.id);
             await interaction.followUp({
-                content: `Le chat est maintenant configuré dans ${channel} ❌`
+                content: `Le chat est maintenant configuré dans ${channel} ✅`
             });
         } catch (error) {
             console.error('Erreur lors de la configuration du chat:', error);
