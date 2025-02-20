@@ -3,10 +3,9 @@ const { Message, Client } = require("discord.js");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const geminiKey = require("../config.json").gemini;
 const { checkAndIncrementCounter } = require("../utils/requestCounter");
-const { getSystemContext } = require("../utils/botContext");
+const { getSystemContext, updateSystemContext } = require("../utils/botContext");
 const TextBuffer = require("../utils/textBuffer");
 const db = require("../utils/database");
-
 
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
@@ -27,7 +26,10 @@ client.on('messageCreate', async (message) => {
 
         // Récupérer l'historique spécifique à l'utilisateur
         const history = await db.getRecentHistory(message.guildId, message.author.id);
-        const systemContext = await getSystemContext(message.author.id);
+
+        // Récupérer le contexte utilisateur actuel et mettre à jour le contexte système
+        const userContext = await db.getUserContext(message.author.id);
+        const systemContext = await getSystemContext(userContext);
 
         const genAI = new GoogleGenerativeAI(geminiKey);
         const model = genAI.getGenerativeModel({

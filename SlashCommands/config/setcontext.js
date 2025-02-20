@@ -1,59 +1,46 @@
-const { Client, CommandInteraction } = require('discord.js');
+const { Client, CommandInteraction } = require("discord.js");
 const db = require("../../utils/database");
 const contexts = require("../../utils/botContexts");
 
 module.exports = {
     name: "setcontext",
-    description: "Choisis la personnalité du bot",
+    description: "Change la personnalité du bot pour vous",
     type: 'CHAT_INPUT',
-
-    run: async (client, interaction, args) => {
-        const options = Object.entries(contexts).map(([value, context]) => ({
-            label: context.name,
-            description: context.description,
-            value: value
-        }));
-
-        const response = await interaction.followUp({
-            content: 'Choisis ma personnalité 🎭',
-            components: [{
-                type: 1, // ActionRow
-                components: [{
-                    type: 3, // StringSelect
-                    custom_id: 'select_context',
-                    placeholder: 'Choisis une personnalité',
-                    options: options
-                }]
-            }]
-        });
-
-        try {
-            const collected = await response.awaitMessageComponent({ 
-                filter: (i) => i.user.id === interaction.user.id,
-                time: 30000 
-            });
-
-            if (collected) {
-                await db.setUserContext(collected.user.id, collected.values[0]);
-                await collected.update({
-                    content: `Nouvelle personnalité activée: ${contexts[collected.values[0]].name} 🔄`,
-                    components: []
-                });
-            }
-
-        } catch (error) {
-            if (error.code === 'INTERACTION_COLLECTOR_ERROR') {
-                await interaction.editReply({
-                    content: 'Temps écoulé (TIMEOUT!) ⏰',
-                    components: []
-                });
-            } else {
-                console.error(error);
-                await interaction.editReply({
-                    content: 'Une erreur est survenue (ERROR!) ⚠️',
-                    components: []
-                });
-            }
+    userperm: [],
+    botperm : [],
+    options: [
+        {
+            name: "personnalite",
+            description: "Choisissez la personnalité du bot",
+            type: "STRING",
+            required: true,
+            choices: Object.entries(contexts).map(([value, context]) => ({
+                name: `${context.name} - ${context.description}`,
+                value: value
+            }))
         }
-    },
+    ],
+
+    /**
+     * @param {Client} client
+     * @param {CommandInteraction} interaction
+     * @param {String[]} args
+     */
+    run: async (client, interaction, args) => {
+        try {
+            const selectedContext = interaction.options.getString("personnalite");
+            await db.setUserContext(interaction.user.id, selectedContext);
+            
+            await interaction.followUp({
+                content: `✅ J'ai changé ma personnalité en "${contexts[selectedContext].name}" uniquement pour vous !`,
+                ephemeral: true
+            });
+        } catch (error) {
+            console.error(error);
+            await interaction.followUp({
+                content: '❌ Une erreur est survenue lors du changement de personnalité.',
+                ephemeral: true
+            });
+        }
+    }
 };

@@ -4,6 +4,8 @@ module.exports = {
     name: "ping",
     description: "returns websocket ping",
     type: 'CHAT_INPUT',
+    userperm: [],
+    botperm : [],
     /**
      *
      * @param {Client} client

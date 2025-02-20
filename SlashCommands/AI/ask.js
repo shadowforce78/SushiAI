@@ -9,6 +9,8 @@ module.exports = {
     name: "ask",
     description: "Pose une question textuelle à l'IA",
     type: 'CHAT_INPUT',
+    userperm: [],
+    botperm : [],
     options: [
         {
             name: "question",

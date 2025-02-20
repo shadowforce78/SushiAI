@@ -13,6 +13,8 @@ module.exports = {
     name: "askpdf",
     description: "Pose une question à l'IA en fournissant un fichier PDF",
     type: 'CHAT_INPUT',
+    userperm: [],
+    botperm : [],
     options: [
         {
             name: "question",

@@ -5,6 +5,8 @@ module.exports = {
     name: "setchat",
     description: "Configure le canal pour le chat avec l'IA",
     type: 'CHAT_INPUT',
+    userperm: [],
+    botperm : [],
     defaultMemberPermissions: 0x0000000000000010n, // ManageChannels flag
     options: [
         {
