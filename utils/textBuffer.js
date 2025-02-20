@@ -2,118 +2,154 @@ class TextBuffer {
     constructor(maxLength = 1500) {
         this.buffer = '';
         this.maxLength = maxLength;
-        this.activeFormatting = new Set();
+        this.pendingCodeBlock = {
+            active: false,
+            language: '',
+            content: ''
+        };
+        this.formatStack = [];
     }
 
     append(text) {
         this.buffer += text;
     }
 
-    shouldFlush() {
-        return this.buffer.length >= this.maxLength;
-    }
+    parseFormatting(text) {
+        const tokens = [];
+        let currentPos = 0;
+        let inCodeBlock = false;
+        let inInlineCode = false;
 
-    // Nouvelle méthode pour détecter le formatage actif
-    updateActiveFormatting(text) {
-        const markdownPatterns = {
-            bold: /\*\*/g,
-            italic: /\*/g,
-            underline: /__/g,
-            strike: /~~/g,
-            code: /`/g,
-            codeblock: /```/g
-        };
+        const regex = /(```(?:[\w-]+)?\n?|\n```|`|[*_~]{1,2})/g;
+        let match;
 
-        for (const [style, pattern] of Object.entries(markdownPatterns)) {
-            const matches = text.match(pattern);
-            if (matches && matches.length % 2 !== 0) {
-                if (this.activeFormatting.has(style)) {
-                    this.activeFormatting.delete(style);
+        while ((match = regex.exec(text)) !== null) {
+            const token = match[0];
+            const pos = match.index;
+
+            // Ajouter le texte avant le token
+            if (pos > currentPos) {
+                tokens.push({
+                    type: 'text',
+                    content: text.slice(currentPos, pos)
+                });
+            }
+
+            // Gérer les différents types de formatage
+            if (token.startsWith('```')) {
+                if (!inCodeBlock) {
+                    inCodeBlock = true;
+                    const language = token.slice(3).trim();
+                    tokens.push({
+                        type: 'codeblock_start',
+                        language: language
+                    });
                 } else {
-                    this.activeFormatting.add(style);
+                    inCodeBlock = false;
+                    tokens.push({ type: 'codeblock_end' });
                 }
+            } else if (token === '`' && !inCodeBlock) {
+                tokens.push({
+                    type: inInlineCode ? 'inline_code_end' : 'inline_code_start'
+                });
+                inInlineCode = !inInlineCode;
+            } else if (!inCodeBlock && !inInlineCode) {
+                tokens.push({
+                    type: 'format',
+                    marker: token
+                });
+            } else {
+                tokens.push({
+                    type: 'text',
+                    content: token
+                });
             }
-        }
-    }
 
-    // Nouvelle méthode pour obtenir le formatage de début
-    getLeadingFormatting() {
-        let formatting = '';
-        for (const style of this.activeFormatting) {
-            switch(style) {
-                case 'bold': formatting += '**'; break;
-                case 'italic': formatting += '*'; break;
-                case 'underline': formatting += '__'; break;
-                case 'strike': formatting += '~~'; break;
-                case 'code': formatting += '`'; break;
-                case 'codeblock': formatting += '```\n'; break;
-            }
+            currentPos = pos + token.length;
         }
-        return formatting;
-    }
 
-    // Nouvelle méthode pour obtenir le formatage de fin
-    getTrailingFormatting() {
-        let formatting = '';
-        [...this.activeFormatting].reverse().forEach(style => {
-            switch(style) {
-                case 'bold': formatting += '**'; break;
-                case 'italic': formatting += '*'; break;
-                case 'underline': formatting += '__'; break;
-                case 'strike': formatting += '~~'; break;
-                case 'code': formatting += '`'; break;
-                case 'codeblock': formatting += '\n```'; break;
-            }
-        });
-        return formatting;
+        // Ajouter le reste du texte
+        if (currentPos < text.length) {
+            tokens.push({
+                type: 'text',
+                content: text.slice(currentPos)
+            });
+        }
+
+        return tokens;
     }
 
     flush() {
-        let text = '';
-        
-        if (this.buffer.length > this.maxLength) {
-            const safeBreakRegex = /(<@!?\d+>)|(\p{Emoji})|([.,!?]\s+)|(\s+)/gu;
-            let lastSafeBreak = 0;
-            let match;
-
-            while ((match = safeBreakRegex.exec(this.buffer)) !== null) {
-                if (match.index > this.maxLength) break;
-                lastSafeBreak = match.index + match[0].length;
-            }
-
-            if (lastSafeBreak > 0) {
-                text = this.buffer.substring(0, lastSafeBreak);
-                this.buffer = this.buffer.substring(lastSafeBreak).trim();
-            } else {
-                text = this.buffer.substring(0, this.maxLength);
-                this.buffer = this.buffer.substring(this.maxLength);
-            }
-
-            // Mettre à jour le formatage actif
-            this.updateActiveFormatting(text);
-
-            // Ajouter le formatage de fin au texte actuel
-            text += this.getTrailingFormatting();
-
-            // Ajouter le formatage de début au buffer restant
-            if (this.buffer.length > 0) {
-                this.buffer = this.getLeadingFormatting() + this.buffer;
-            }
-        } else {
-            text = this.buffer;
+        if (this.buffer.length <= this.maxLength) {
+            const result = this.buffer;
             this.buffer = '';
-            this.activeFormatting.clear();
+            this.formatStack = [];
+            return result.trim();
         }
 
-        // Gérer les mentions coupées
-        const mentionCheck = text.match(/<@!?\d+$/);
-        if (mentionCheck) {
-            const mentionStart = text.lastIndexOf('<');
-            this.buffer = text.substring(mentionStart) + this.buffer;
-            text = text.substring(0, mentionStart).trim();
+        const tokens = this.parseFormatting(this.buffer);
+        let output = '';
+        let length = 0;
+        let activeFormats = [];
+        let currentCodeBlock = null;
+
+        for (const token of tokens) {
+            const tokenText = token.type === 'text' ? token.content : 
+                            token.type === 'codeblock_start' ? '```' + (token.language || '') + '\n' :
+                            token.type === 'codeblock_end' ? '\n```' :
+                            token.type === 'inline_code_start' || token.type === 'inline_code_end' ? '`' :
+                            token.marker;
+
+            if (length + tokenText.length > this.maxLength) {
+                // Fermer tous les formats actifs
+                if (currentCodeBlock) {
+                    output += '\n```';
+                    this.pendingCodeBlock = {
+                        active: true,
+                        language: currentCodeBlock,
+                        content: this.buffer.slice(length)
+                    };
+                } else {
+                    [...activeFormats].reverse().forEach(format => {
+                        output += format;
+                    });
+                }
+                
+                this.buffer = this.buffer.slice(length);
+                if (!currentCodeBlock) {
+                    this.buffer = activeFormats.join('') + this.buffer;
+                } else {
+                    this.buffer = '```' + currentCodeBlock + '\n' + this.buffer;
+                }
+                
+                return output.trim();
+            }
+
+            output += tokenText;
+            length += tokenText.length;
+
+            switch (token.type) {
+                case 'codeblock_start':
+                    currentCodeBlock = token.language;
+                    activeFormats = [];
+                    break;
+                case 'codeblock_end':
+                    currentCodeBlock = null;
+                    break;
+                case 'format':
+                    if (!currentCodeBlock) {
+                        if (activeFormats.includes(token.marker)) {
+                            activeFormats = activeFormats.filter(f => f !== token.marker);
+                        } else {
+                            activeFormats.push(token.marker);
+                        }
+                    }
+                    break;
+            }
         }
 
-        return text;
+        this.buffer = '';
+        return output.trim();
     }
 }
 
