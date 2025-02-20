@@ -30,7 +30,7 @@ client.on('messageCreate', async (message) => {
         const systemContext = await getSystemContext(message.author.id);
 
         const genAI = new GoogleGenerativeAI(geminiKey);
-        const model = genAI.getGenerativeModel({ 
+        const model = genAI.getGenerativeModel({
             model: "gemini-2.0-flash",
             generationConfig: {
                 maxOutputTokens: 2048,
@@ -66,7 +66,7 @@ client.on('messageCreate', async (message) => {
         });
 
         const response = result.response.text();
-        
+
         // Découper la réponse en morceaux si nécessaire
         const buffer = new TextBuffer();
         buffer.append(response);
