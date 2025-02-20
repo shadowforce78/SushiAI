@@ -21,15 +21,18 @@ client.on('messageCreate', async (message) => {
 
         await message.channel.sendTyping();
 
-        // Nettoyer l'ancien historique de l'utilisateur
-        await db.cleanOldHistory(message.guildId, message.author.id);
-
-        // Récupérer l'historique spécifique à l'utilisateur
-        const history = await db.getRecentHistory(message.guildId, message.author.id);
-        
-        // Corriger la récupération du contexte système
+        // Récupération et validation du contexte actuel
         const userContext = await db.getUserContext(message.author.id);
-        const systemContext = await getSystemContext(message.author.id);
+        const currentSystemContext = await getSystemContext(message.author.id);
+        
+        // Plus besoin de forcer la mise à jour si pas de changement
+        if (userContext && userContext !== currentSystemContext) {
+            await updateSystemContext(message.author.id, currentSystemContext);
+        }
+
+        // Nettoyer l'ancien historique et récupérer l'historique récent
+        await db.cleanOldHistory(message.guildId, message.author.id);
+        const history = await db.getRecentHistory(message.guildId, message.author.id);
 
         const genAI = new GoogleGenerativeAI(geminiKey);
         const model = genAI.getGenerativeModel({
@@ -40,15 +43,18 @@ client.on('messageCreate', async (message) => {
             }
         });
 
+        // Ajout d'un rappel explicite du contexte dans chaque conversation
+        const contextReminder = `Important: ${currentSystemContext}\nRappel: Garde toujours ce contexte en tête pour ta réponse.`;
+
         const result = await model.generateContent({
             contents: [
                 {
                     role: 'user',
-                    parts: [{ text: systemContext }]
+                    parts: [{ text: contextReminder }]
                 },
                 {
                     role: 'model',
-                    parts: [{ text: "Compris, je vais répondre selon ces directives." }]
+                    parts: [{ text: "Compris, je vais strictement suivre ce contexte." }]
                 },
                 ...history.reverse().flatMap(entry => [
                     {
@@ -62,7 +68,7 @@ client.on('messageCreate', async (message) => {
                 ]),
                 {
                     role: 'user',
-                    parts: [{ text: message.content }]
+                    parts: [{ text: `${contextReminder}\n\nMessage de l'utilisateur: ${message.content}` }]
                 }
             ]
         });
