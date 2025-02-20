@@ -8,6 +8,7 @@ client.on("ready", () => {
     `);
     console.log(`► Bot connecté en tant que ${client.user.tag}`);
     console.log(`► Actif sur ${client.guilds.cache.size} serveurs`);
+    console.log(`► Prêt à servir ${client.users.cache.size} utilisateurs`);
 
     // Status rotatif
     let status = [
