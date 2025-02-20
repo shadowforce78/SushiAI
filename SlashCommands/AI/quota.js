@@ -5,6 +5,8 @@ module.exports = {
     name: "quota",
     description: "Affiche le nombre de requêtes restantes pour aujourd'hui",
     type: 'CHAT_INPUT',
+    userperm: [],
+    botperm : [],
     
     /**
      * @param {Client} client

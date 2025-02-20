@@ -71,11 +71,15 @@ client.on('messageCreate', async (message) => {
         const buffer = new TextBuffer();
         buffer.append(response);
 
+        // Premier message avec mention de l'utilisateur
+        let isFirstMessage = true;
         while (buffer.buffer.length > 0) {
+            const content = buffer.flush();
             await message.channel.send({
-                content: buffer.flush(),
-                allowedMentions: { parse: [] }
+                content: isFirstMessage ? `<@${message.author.id}> ${content}` : content,
+                allowedMentions: { users: [message.author.id] }
             });
+            isFirstMessage = false;
         }
 
         // Sauvegarder dans l'historique
