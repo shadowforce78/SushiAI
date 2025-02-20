@@ -51,15 +51,15 @@ class Database {
         });
     }
 
-    getRecentHistory(guildId, limit = 20) {
+    getRecentHistory(guildId, userId, limit = 20) {
         return new Promise((resolve, reject) => {
             const sql = `
                 SELECT message, response, user_id 
                 FROM chat_history 
-                WHERE guild_id = ?
+                WHERE guild_id = ? AND user_id = ?
                 ORDER BY timestamp DESC 
                 LIMIT ?`;
-            this.db.all(sql, [guildId, limit], (err, rows) => {
+            this.db.all(sql, [guildId, userId, limit], (err, rows) => {
                 if (err) reject(err);
                 else resolve(rows);
             });
@@ -67,13 +67,14 @@ class Database {
     }
 
     // Nouvelle méthode pour nettoyer l'historique trop ancien
-    cleanOldHistory(guildId, hoursToKeep = 24) {
+    cleanOldHistory(guildId, userId, hoursToKeep = 24) {
         return new Promise((resolve, reject) => {
             const sql = `
                 DELETE FROM chat_history 
                 WHERE guild_id = ? 
+                AND user_id = ?
                 AND timestamp < datetime('now', '-' || ? || ' hours')`;
-            this.db.run(sql, [guildId, hoursToKeep], (err) => {
+            this.db.run(sql, [guildId, userId, hoursToKeep], (err) => {
                 if (err) reject(err);
                 else resolve();
             });

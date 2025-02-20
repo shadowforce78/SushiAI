@@ -22,11 +22,11 @@ client.on('messageCreate', async (message) => {
 
         await message.channel.sendTyping();
 
-        // Nettoyer l'ancien historique
-        await db.cleanOldHistory(message.guildId);
+        // Nettoyer l'ancien historique de l'utilisateur
+        await db.cleanOldHistory(message.guildId, message.author.id);
 
-        // Récupérer l'historique global du salon
-        const history = await db.getRecentHistory(message.guildId);
+        // Récupérer l'historique spécifique à l'utilisateur
+        const history = await db.getRecentHistory(message.guildId, message.author.id);
         const systemContext = await getSystemContext(message.author.id);
 
         const genAI = new GoogleGenerativeAI(geminiKey);
