@@ -26,10 +26,10 @@ client.on('messageCreate', async (message) => {
 
         // Récupérer l'historique spécifique à l'utilisateur
         const history = await db.getRecentHistory(message.guildId, message.author.id);
-
-        // Récupérer le contexte utilisateur actuel et mettre à jour le contexte système
+        
+        // Corriger la récupération du contexte système
         const userContext = await db.getUserContext(message.author.id);
-        const systemContext = await getSystemContext(userContext);
+        const systemContext = await getSystemContext(message.author.id);
 
         const genAI = new GoogleGenerativeAI(geminiKey);
         const model = genAI.getGenerativeModel({
