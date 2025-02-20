@@ -6,7 +6,7 @@ const { checkAndIncrementCounter } = require("../utils/requestCounter");
 const { getSystemContext } = require("../utils/botContext");
 const TextBuffer = require("../utils/textBuffer");
 const db = require("../utils/database");
-const FileParser = require('../utils/fileParser');
+
 
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
@@ -21,25 +21,6 @@ client.on('messageCreate', async (message) => {
         }
 
         await message.channel.sendTyping();
-
-        // Traiter les fichiers joints s'il y en a
-        let fileContent = '';
-        if (message.attachments.size > 0) {
-            await message.channel.sendTyping();
-            
-            for (const [_, attachment] of message.attachments) {
-                const fileType = FileParser.getFileType(attachment.contentType);
-                if (fileType) {
-                    try {
-                        const content = await FileParser.parseFile(attachment.url, fileType);
-                        fileContent += `\nContenu du fichier ${attachment.name}:\n${content}\n`;
-                    } catch (error) {
-                        console.error(`Erreur lors du traitement du fichier ${attachment.name}:`, error);
-                        await message.reply(`Je n'ai pas pu lire le fichier ${attachment.name} (ERROR!) 😔`);
-                    }
-                }
-            }
-        }
 
         // Nettoyer l'ancien historique
         await db.cleanOldHistory(message.guildId);
@@ -79,10 +60,7 @@ client.on('messageCreate', async (message) => {
                 ]),
                 {
                     role: 'user',
-                    parts: [{ text: fileContent ? 
-                        `${message.content}\n\nFichiers joints:\n${fileContent}` : 
-                        message.content 
-                    }]
+                    parts: [{ text: message.content }]
                 }
             ]
         });
