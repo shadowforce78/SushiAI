@@ -91,6 +91,11 @@ class Database {
         });
     }
 
+    // Added method to update user context using the same logic as setUserContext
+    updateUserContext(userId, context) {
+        return this.setUserContext(userId, context);
+    }
+
     getUserContext(userId) {
         return new Promise((resolve, reject) => {
             const sql = 'SELECT context_type FROM user_contexts WHERE user_id = ?';
